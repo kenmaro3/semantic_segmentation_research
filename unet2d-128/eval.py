@@ -54,6 +54,18 @@ model   = tf.keras.Model(inputs, outputs)
 
 model.load_weights(f"model_128.h5")
 
+# converter = tf.lite.TFLiteConverter.from_keras_model(model)
+
+# converter.optimizations = [tf.lite.Optimize.DEFAULT]
+# converter.target_spec.supported_types = [tf.float16]
+
+# tflite_model = converter.convert()
+
+# tflite_model_file = "model_128.tflite"
+# tflite_model_file.write_bytes(tflite_model)
+
+# quit()
+
 
 res_folder = "./result"
 if os.path.exists(res_folder):
@@ -63,12 +75,13 @@ else:
     os.mkdir(res_folder)
 
 dl = dl_eval.get_dl(batch_size=1)
-loop = 5
+loop = 50
 time_list = []
 for i in range(loop):
     print(f"{i} th loop =======================")
 
     frames, labels = dl[i]
+    frames = frames.astype("float32")
     labels = np.where(labels < 0.5, 0, 255)
     labels = labels.astype(np.uint8)
 
@@ -90,15 +103,15 @@ for i in range(loop):
     # plt.imsave(f'{res_folder}/res_{i}.png', tmp[:, :, 0], cmap='gray')
     # plt.imsave(f'{res_folder}/label_{i}.png', labels[0], cmap='gray')
 
-    res_cv = cv.cvtColor(tmp, cv.COLOR_GRAY2BGR)
-    frame = cv.cvtColor(frames[0], cv.COLOR_RGB2BGR)
-    img_merged = cv.addWeighted(frame, 1.0, res_cv, 1.0, 0.1)
-    img_merged_resize = cv.resize(img_merged, dsize=(640, 480))
-    cv.imwrite(f"{res_folder}/merged_{i}.png", img_merged_resize)
+    # res_cv = cv.cvtColor(tmp, cv.COLOR_GRAY2BGR)
+    # frame = cv.cvtColor(frames[0], cv.COLOR_RGB2BGR)
+    # img_merged = cv.addWeighted(frame, 1.0, res_cv, 1.0, 0.1)
+    # img_merged_resize = cv.resize(img_merged, dsize=(640, 480))
+    # cv.imwrite(f"{res_folder}/merged_{i}.png", img_merged_resize)
 
-    stat = calculate_stat_helper(tmp, labels[0])
-    print(f"stat: {stat}")
+    # stat = calculate_stat_helper(tmp, labels[0])
+    # print(f"stat: {stat}")
 
 print("time average:")
 print(time_list)
-print(np.average(time_list[5:]))
+print(np.average(time_list[10:]))
