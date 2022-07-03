@@ -7,7 +7,7 @@ class BottleNeck(Model):
     def __init__(self):
         super(BottleNeck, self).__init__()
         self.flatten = tf.keras.layers.Flatten()
-        self.dense1 = tf.keras.layers.Dense(2048, activation="relu")
+        self.dense1 = tf.keras.layers.Dense(512, activation="relu")
         self.dense2 = tf.keras.layers.Dense(512, activation="relu")
         self.reshape = tf.keras.layers.Reshape((8,8,8))
     def call(self,x):
@@ -23,10 +23,10 @@ class DoubleConv(Model):
         if midc is None:
             midc = outc
 
-        self.conv1 = tf.keras.layers.Conv2D(filters=midc, kernel_size=(3, 3), strides=(1, 1), padding="same")
+        self.conv1 = tf.keras.layers.SeparableConv2D(filters=midc, kernel_size=(3, 3), strides=(1, 1), padding="same")
         self.bn1 = tf.keras.layers.BatchNormalization()
         self.relu1 = tf.keras.layers.ReLU()
-        self.conv2 = tf.keras.layers.Conv2D(filters=midc, kernel_size=(3, 3), strides=(1, 1), padding="same")
+        self.conv2 = tf.keras.layers.SeparableConv2D(filters=midc, kernel_size=(3, 3), strides=(1, 1), padding="same")
         self.bn2 = tf.keras.layers.BatchNormalization()
         self.relu2 = tf.keras.layers.ReLU()
 
@@ -59,8 +59,9 @@ class Up(Model):
     def __init__(self, inc, outc):
         super(Up, self).__init__()
 
-        self.up = tf.keras.layers.Conv2DTranspose(filters=inc, kernel_size=(2, 2), strides=(2, 2))
-        self.test = tf.keras.layers.Conv2D(inc,(1,1))
+        #self.up = tf.keras.layers.Conv2DTranspose(filters=inc, kernel_size=(2, 2), strides=(2, 2))
+        self.up = tf.keras.layers.UpSampling2D(size=(2, 2))
+        self.test = tf.keras.layers.SeparableConv2D(inc,(1,1))
         self.conv = DoubleConv(inc, outc)
 
 
@@ -85,7 +86,7 @@ class OutConv(Model):
     # use point wise convolution
     def __init__(self, inc, outc):
         super(OutConv, self).__init__()
-        self.conv = tf.keras.layers.Conv2D(outc, kernel_size=(1, 1), strides=(1, 1), padding="same",activation="sigmoid")
+        self.conv = tf.keras.layers.SeparableConv2D(outc, kernel_size=(1, 1), strides=(1, 1), padding="same",activation="sigmoid")
 
     def call(self, x):
         # x.shape = (batch, d, h, w, inc)
@@ -104,19 +105,19 @@ class UNet2D(Model):
 
         self.inc = DoubleConv(n_channels, 64)
 
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
-        self.down4 = Down(512, 512)
+        self.down1 = Down(64, 96)
+        self.down2 = Down(96, 144)
+        self.down3 = Down(144, 216)
+        self.down4 = Down(216, 216)
         self.bottom = BottleNeck()
 
-        self.up1 = Up(512, 512)
+        self.up1 = Up(216, 216)
         # self.up2 = Up(512, 256,2)
         # self.up3 = Up(256, 128,4)
         # self.up4 = Up(128, 64,8)
-        self.up2 = Up(512, 256)
-        self.up3 = Up(256, 128)
-        self.up4 = Up(128, 64)
+        self.up2 = Up(216, 144)
+        self.up3 = Up(144, 96)
+        self.up4 = Up(96, 64)
 
         self.outc = OutConv(64, n_classes)
 
