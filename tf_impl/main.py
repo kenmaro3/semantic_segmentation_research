@@ -174,3 +174,4 @@ plt.ylabel('Loss function')
 plt.legend()
 plt.show()
 fig.savefig("model_128.jpg", transparent=True)
+
