@@ -10,6 +10,71 @@ import numpy as np
 import glob
 from matplotlib import pyplot as plt
 
+
+class CarEval(Dataset):
+    def __init__(self, paths_data, paths_label, obj_data, obj_label, frames) -> None:
+        super().__init__()
+        self.paths_data = paths_data
+        self.paths_label = paths_label
+        self.obj_data = obj_data
+        self.obj_label = obj_label
+        self.frames = frames
+        self.data_size = 100
+
+        self.datas = np.zeros((self.data_size, 3, 128, 128))
+        self.labels = np.zeros((self.data_size, 1, 128, 128))
+        for i in range(self.data_size):
+            video_index = random.randint(0, len(self.paths_data)-1)
+            target_video = self.paths_data[video_index]
+            target_label = self.paths_label[video_index]
+
+            frame_one = np.zeros((3, 128, 128))
+            label_one = np.zeros((1, 128, 128), dtype=np.int32)
+
+
+            random_frame = random.random()*0.99
+            start = int((self.frames[target_video][1]-self.frames[target_video][0]) \
+                        * random_frame \
+                        + self.frames[target_video][0])
+            try:
+                self.obj_data[target_video].set(cv.CAP_PROP_POS_FRAMES, start)
+                self.obj_label[target_label].set(cv.CAP_PROP_POS_FRAMES, start)
+                ret_, frame_label = self.obj_label[target_label].read()
+            except:
+                print("fail to get img1")
+                raise
+
+
+            frame_label = cv.cvtColor(frame_label, cv.COLOR_BGR2GRAY)
+            ret_, frame_label = cv.threshold(frame_label, 50, 255, cv.THRESH_BINARY)
+            label = np.where(frame_label < 50.0 , 0, 1)
+
+            ret, frame = self.obj_data[target_video].read()
+            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            # frame = np.array(frame,dtype=np.float32)
+            frame = frame/255.
+            frame = frame.astype(np.float32)
+            frame = cv.resize(frame, dsize=(128, 128))
+
+            frame_one = np.transpose(frame, (2, 0, 1))
+            frame_label = cv.resize(frame_label, dsize=(128, 128))
+
+
+            self.datas[i] = frame_one
+            self.labels[i] = frame_label
+
+
+    def __len__(self) -> int:
+        return self.data_size
+    
+    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
+        torch_frame_one = torch.from_numpy(self.datas[index]).clone().float()
+        #torch_label_one = torch.from_numpy(self.labels[index]).clone().long()
+        torch_label_one = torch.from_numpy(self.labels[index]).clone()
+        #return torch_frame_one, torch_label_one.squeeze()
+        return torch_frame_one, torch_label_one
+
+
     
 class Car(Dataset):
     def __init__(self, paths_data, paths_label, obj_data, obj_label, frames) -> None:
@@ -19,7 +84,7 @@ class Car(Dataset):
         self.obj_data = obj_data
         self.obj_label = obj_label
         self.frames = frames
-        self.data_size = 6
+        self.data_size = 200
 
         self.datas = np.zeros((self.data_size, 3, 128, 128))
         self.labels = np.zeros((self.data_size, 1, 128, 128))

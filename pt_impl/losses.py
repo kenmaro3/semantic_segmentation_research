@@ -49,6 +49,30 @@ class OhemCrossEntropy(nn.Module):
             return sum([w * self._forward(pred, labels) for (pred, w) in zip(preds, self.aux_weights)])
         return self._forward(preds, labels)
 
+class BCE_Dice(nn.Module):
+    def __init__(self):
+        """
+        delta: Controls weight given to FP and FN. This equals to dice score when delta=0.5
+        """
+        super(BCE_Dice, self).__init__()
+        self.smooth = 1.0
+        self.bce_criterion = nn.BCEWithLogitsLoss()
+
+    def _forward(self, preds: Tensor, labels: Tensor) -> Tensor:
+        # preds in shape [B, C, H, W] and labels in shape [B, H, W]
+        score_bce = self.bce_criterion(preds, labels)
+
+        preds_f = torch.flatten(preds)
+        labels_f = torch.flatten(labels)
+        intersection = torch.sum(preds_f * labels_f)
+        score = (2. * intersection + self.smooth) / (torch.sum(preds_f) + torch.sum(labels_f) + self.smooth)
+        score_dice = 1 - score
+
+
+        return score_dice + score_bce
+
+    def forward(self, preds, targets: Tensor) -> Tensor:
+        return self._forward(preds, targets)
 
 class Dice(nn.Module):
     def __init__(self, delta: float = 0.5, aux_weights: list = [1, 0.4, 0.4]):

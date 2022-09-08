@@ -18,8 +18,10 @@ import time
 from car_video import Car
 import glob
 import cv2 as cv
+import torch.nn.functional as F
 
 from losses import *
+from losses import BCE_Dice
 from optimizers import *
 from schedulers import WarmupCosineLR
 from model_mobile_thin import UNet2D
@@ -43,12 +45,32 @@ def get_params(model):
     return params
 
 
-def main(save_dir):
-    num_workers = mp.cpu_count()
-    device = torch.device('cpu')
+def dice_loss(pred, target, smooth = 1.):
+    pred = pred.contiguous()
+    target = target.contiguous()
+    intersection = (pred * target).sum(dim=2).sum(dim=2)
+    loss = (1 - ((2. * intersection + smooth) / (pred.sum(dim=2).sum(dim=2) + target.sum(dim=2).sum(dim=2) + smooth)))
+    return loss.mean()
 
-    root_data = "/Users/kmihara/Downloads/video/*.mp4"
-    root_label = "/Users/kmihara/Downloads/video_label/*.mp4"
+
+def calc_loss(pred, target, metrics=None, bce_weight=0.5):
+    # Dice LossとCategorical Cross Entropyを混ぜていい感じにしている
+    bce = F.binary_cross_entropy_with_logits(pred, target)
+    pred = torch.sigmoid(pred)
+    dice = dice_loss(pred, target)
+    loss = bce * bce_weight + dice * (1 - bce_weight)
+    return loss
+
+
+def main(model_save_path):
+    num_workers = mp.cpu_count()
+    device = torch.device('cuda')
+
+    #root_data = "/Users/kmihara/Downloads/video/*.mp4"
+    #root_label = "/Users/kmihara/Downloads/video_label/*.mp4"
+
+    root_data = "/home/ubuntu/workdir/nur/semantic-segmentation/data/CAR/training/video/*"
+    root_label = "/home/ubuntu/workdir/nur/semantic-segmentation/data/CAR/training/video_label/*"
 
     paths_data = sorted(glob.glob(root_data))
     paths_label = sorted(glob.glob(root_label))
@@ -84,24 +106,28 @@ def main(save_dir):
     sampler = RandomSampler(trainset)
 
     
-    bs = 1
+    bs = 4
+    lr = 1e-3
+    epochs = 200
+
     trainloader = DataLoader(trainset, batch_size=bs, num_workers=0, drop_last=True, pin_memory=True, sampler=sampler)
     valloader = DataLoader(valset, batch_size=bs, num_workers=0, pin_memory=True)
 
     iters_per_epoch = len(trainset) // bs
     # class_weights = trainset.class_weights.to(device)
-    # loss_fn = Dice()
-    loss_fn = nn.BCEWithLogitsLoss()
-    lr = 1e-3
-    epochs = 2
+    loss_fn = calc_loss
+    #loss_fn = nn.BCEWithLogitsLoss()
     optimizer = AdamW(get_params(model), lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01)
     scheduler = WarmupCosineLR(optimizer, epochs * iters_per_epoch, 0.9, iters_per_epoch * 0, 0.1)
-    scaler = GradScaler(enabled=False)
-    writer = SummaryWriter(f"{save_dir}/logs")
+    # scaler = GradScaler(enabled=False)
 
+
+    train_loss_list = []
+    early_stop_count = 0
+    early_stop_threshold = 10
 
     for epoch in range(epochs):
-        print(f"epoch loop: {epoch}/{epochs}")
+        print(f"\nepoch loop: {epoch}/{epochs}")
         model.train()
 
         train_loss = 0.0
@@ -122,20 +148,36 @@ def main(save_dir):
                 loss = loss_fn(logits, lbl)
 
 
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            loss.backward()
+            optimizer.step()
             scheduler.step()
-            #torch.cuda.synchronize()
+            torch.cuda.synchronize()
 
             lr = scheduler.get_lr()
             #lr = sum(lr) / count_iter
             train_loss += loss.item()
         print(f"train_loss: {train_loss}")
+        train_loss_list.append(train_loss)
+
+        if len(train_loss_list) == 0:
+            torch.save(model, model_save_path)
+        elif len(train_loss_list) == 1:
+            torch.save(model, model_save_path)
+        else:
+            if min(train_loss_list[:-1]) > train_loss:
+                torch.save(model, model_save_path)
+                print("saving model...")
+                early_stop_count = 0
+            else:
+                early_stop_count += 1
+                print(f"early stop count: {early_stop_count} / {early_stop_threshold}")
+                if early_stop_count >= early_stop_threshold:
+                    torch.cuda.empty_cache()
+                    print("early stop...")
+                    break
 
         
-        train_loss /= (len(trainloader)) 
-        writer.add_scalar('train/loss', train_loss, epoch)
+        #train_loss /= (len(trainloader)) 
         torch.cuda.empty_cache()
 
 
@@ -153,5 +195,5 @@ if __name__ == '__main__':
     # save_dir = Path(cfg['SAVE_DIR'])
     # save_dir.mkdir(exist_ok=True)
     # main(save_dir)
-    main("./tmp")
+    main("./tmp.pt")
 

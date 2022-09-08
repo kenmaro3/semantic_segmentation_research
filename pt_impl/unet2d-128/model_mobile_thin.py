@@ -28,7 +28,7 @@ class BottleNeck(nn.Module):
     
     def forward(self, x):
         x = self.bottle_neck(x)
-        x = torch.reshape(x, (1, 8, 8, 8))
+        x = torch.reshape(x, (x.size()[0], 8, 8, 8))
         return x
 
 
