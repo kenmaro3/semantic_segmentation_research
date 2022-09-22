@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 import tensorflow as tf
-from unet2d import UNet2D
+from unet2d_mobile_ultra_thin import UNet2D
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     outputs = model(inputs)
     model   = tf.keras.Model(inputs, outputs)
 
-    model.load_weights(f"model_128.h5")
+    model.load_weights(f"model_128_1m.h5")
 
     # converter = tf.lite.TFLiteConverter.from_keras_model(model)
 
@@ -102,14 +102,14 @@ if __name__ == "__main__":
         frames = frames.astype(np.uint8)
         pil_image=Image.fromarray(frames[0])
         # pil_image.save(f"{res_folder}/pil_{i}.png")
-        # plt.imsave(f'{res_folder}/res_{i}.png', tmp[:, :, 0], cmap='gray')
-        # plt.imsave(f'{res_folder}/label_{i}.png', labels[0], cmap='gray')
+        plt.imsave(f'{res_folder}/res_{i}.png', tmp[:, :, 0], cmap='gray')
+        plt.imsave(f'{res_folder}/label_{i}.png', labels[0], cmap='gray')
 
-        # res_cv = cv.cvtColor(tmp, cv.COLOR_GRAY2BGR)
-        # frame = cv.cvtColor(frames[0], cv.COLOR_RGB2BGR)
-        # img_merged = cv.addWeighted(frame, 1.0, res_cv, 1.0, 0.1)
-        # img_merged_resize = cv.resize(img_merged, dsize=(640, 480))
-        # cv.imwrite(f"{res_folder}/merged_{i}.png", img_merged_resize)
+        res_cv = cv.cvtColor(tmp, cv.COLOR_GRAY2BGR)
+        frame = cv.cvtColor(frames[0], cv.COLOR_RGB2BGR)
+        img_merged = cv.addWeighted(frame, 1.0, res_cv, 1.0, 0.1)
+        img_merged_resize = cv.resize(img_merged, dsize=(640, 480))
+        cv.imwrite(f"{res_folder}/merged_{i}.png", img_merged_resize)
 
         # stat = calculate_stat_helper(tmp, labels[0])
         # print(f"stat: {stat}")

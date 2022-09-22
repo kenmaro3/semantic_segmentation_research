@@ -2,7 +2,7 @@
 import cv2 as cv
 import glob
 # from unet_network import UNet3D
-from unet2d import UNet2D
+from unet2d_mobile_ultra_thin import UNet2D
 import tensorflow as tf
 from dl_train import DataLoader
 from tensorflow.keras.callbacks import ReduceLROnPlateau,ModelCheckpoint,EarlyStopping
@@ -61,11 +61,11 @@ def weighted_binary_crossentropy(y_true, y_pred):
 
 
 # root_data = "/home/ubuntu/workdir/TargetDataSet-forModel/Location/*data*"
-#root_data = "/home/ubuntu/workdir/nur/semantic-segmentation/data/CAR/training/video/*"
+root_data = "/home/ubuntu/workdir/nur/semantic-segmentation/data/CAR/training/video/*"
 # root_label = "/home/ubuntu/workdir/TargetDataSet-forModel/Location/*label*"*
-#root_label = "/home/ubuntu/workdir/nur/semantic-segmentation/data/CAR/training/video_label/*"
-root_data = "/Users/kmihara/Downloads/video/*.mp4"
-root_label = "/Users/kmihara/Downloads/video_label/*.mp4"
+root_label = "/home/ubuntu/workdir/nur/semantic-segmentation/data/CAR/training/video_label/*"
+#root_data = "/Users/kmihara/Downloads/video/*.mp4"
+#root_label = "/Users/kmihara/Downloads/video_label/*.mp4"
 
 paths_data = sorted(glob.glob(root_data))
 paths_label = sorted(glob.glob(root_label))
@@ -139,7 +139,7 @@ NADAM = tf.keras.optimizers.Nadam(learning_rate=l_rate,
 
 
 ## Set rule for stopping
-checkpoint = ModelCheckpoint("model_128.h5",
+checkpoint = ModelCheckpoint("model_128_1m.h5",
                              verbose=1,
                              save_freq='epoch',
                              save_best_only=True,

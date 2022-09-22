@@ -24,7 +24,8 @@ from losses import *
 from losses import BCE_Dice
 from optimizers import *
 from schedulers import WarmupCosineLR
-from model_mobile_thin import UNet2D
+#from model_mobile_thin import UNet2D
+from mobile_ultra_thin import UNet2D
 from torch import nn
 
 from torch.optim import AdamW, SGD
@@ -108,7 +109,7 @@ def main(model_save_path):
     
     bs = 4
     lr = 1e-3
-    epochs = 200
+    epochs = 300
 
     trainloader = DataLoader(trainset, batch_size=bs, num_workers=0, drop_last=True, pin_memory=True, sampler=sampler)
     valloader = DataLoader(valset, batch_size=bs, num_workers=0, pin_memory=True)
@@ -117,14 +118,14 @@ def main(model_save_path):
     # class_weights = trainset.class_weights.to(device)
     loss_fn = calc_loss
     #loss_fn = nn.BCEWithLogitsLoss()
-    optimizer = AdamW(get_params(model), lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01)
+    optimizer = AdamW(get_params(model), lr, betas=(0.9, 0.999), eps=1e-7, weight_decay=0.01)
     scheduler = WarmupCosineLR(optimizer, epochs * iters_per_epoch, 0.9, iters_per_epoch * 0, 0.1)
     # scaler = GradScaler(enabled=False)
 
 
     train_loss_list = []
     early_stop_count = 0
-    early_stop_threshold = 10
+    early_stop_threshold = 15
 
     for epoch in range(epochs):
         print(f"\nepoch loop: {epoch}/{epochs}")
@@ -195,5 +196,5 @@ if __name__ == '__main__':
     # save_dir = Path(cfg['SAVE_DIR'])
     # save_dir.mkdir(exist_ok=True)
     # main(save_dir)
-    main("./tmp.pt")
+    main("./model_128_ultra_thin.pt")
 

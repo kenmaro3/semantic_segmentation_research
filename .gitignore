@@ -5,3 +5,6 @@
 **.h5
 **/__pycache__
 events.*
+*.tflite
+*.csv
+*.pt

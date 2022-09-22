@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import pandas as pd
 
 import cv2 as cv
 import glob
@@ -75,7 +76,12 @@ def main(model_save_path, res_folder="res"):
 
     m = nn.Sigmoid()
 
+    stats_list = []
+
+    count = 0
+
     for i, (data, label) in enumerate(valloader):
+        print(f"count: {count}================")
         data = data.to(device)
         label = label.to(device)
         with torch.no_grad():
@@ -84,21 +90,21 @@ def main(model_save_path, res_folder="res"):
             output_cpu = output_sigmoid.to('cpu').detach().numpy().copy()
             label_cpu = label.to('cpu').detach().numpy().copy()
 
-            label_cpu = np.where(label_cpu < 0.5, 0, 255)
-            labels = label_cpu.astype(np.uint8)
+        label_cpu = np.where(label_cpu < 0.5, 0, 255)
+        labels = label_cpu.astype(np.uint8)
 
-            res = np.where(output_cpu < 0.5, 0, 255)
-            tmp = res[0]
-            tmp = tmp.astype(np.uint8)
+        res = np.where(output_cpu < 0.5, 0, 255)
+        tmp = res[0]
+        tmp = tmp.astype(np.uint8)
 
-            # print("\nhere==========")
-            # print(tmp.shape)
-            # print(labels.shape)
+        plt.imsave(f'{res_folder}/res_{i}.png', tmp[0], cmap='gray')
+        plt.imsave(f'{res_folder}/label_{i}.png', labels[0, 0, :, :], cmap='gray')
 
-            plt.imsave(f'{res_folder}/res_{i}.png', tmp[0], cmap='gray')
-            plt.imsave(f'{res_folder}/label_{i}.png', labels[0, 0, :, :], cmap='gray')
+        stats_list.append(calculate_stat_helper(output_cpu, label_cpu))
 
-            print(calculate_stat_helper(output_cpu, label_cpu))
+        df = pd.DataFrame(stats_list, columns=['precision', 'recall', 'fvalue', 'iou'])
+        df.to_csv(f"{res_folder}/res.csv")
+        count += 1
 
 
 if __name__ == "__main__":

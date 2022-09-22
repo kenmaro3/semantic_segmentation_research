@@ -84,7 +84,7 @@ class Car(Dataset):
         self.obj_data = obj_data
         self.obj_label = obj_label
         self.frames = frames
-        self.data_size = 200
+        self.data_size = 300
 
         self.datas = np.zeros((self.data_size, 3, 128, 128))
         self.labels = np.zeros((self.data_size, 1, 128, 128))
