@@ -39,6 +39,28 @@ class DoubleConv(Model):
         x = self.relu2(x)
         return x
 
+class DoubleConvNotSeparable(Model):
+    def __init__(self, inc, outc, midc=None):
+        super(DoubleConvNotSeparable, self).__init__()
+        if midc is None:
+            midc = outc
+
+        self.conv1 = tf.keras.layers.Conv2D(filters=midc, kernel_size=(3, 3), strides=(1, 1), padding="same")
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.relu1 = tf.keras.layers.ReLU()
+        self.conv2 = tf.keras.layers.Conv2D(filters=midc, kernel_size=(3, 3), strides=(1, 1), padding="same")
+        self.bn2 = tf.keras.layers.BatchNormalization()
+        self.relu2 = tf.keras.layers.ReLU()
+
+    def call(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu2(x)
+        return x
+
 
 class Down(Model):
     # (maxpool for (h, w) not d=> DoubleConv)
@@ -103,7 +125,7 @@ class UNet2D(Model):
     def __init__(self, n_channels, n_classes):
         super(UNet2D, self).__init__()
 
-        self.inc = DoubleConv(n_channels, 32)
+        self.inc = DoubleConvNotSeparable(n_channels, 32)
 
         self.down1 = Down(32, 32)
         self.down2 = Down(32, 32)
@@ -154,7 +176,7 @@ if __name__ == "__main__":
     outputs = model(inputs)
     model   = tf.keras.Model(inputs, outputs)
     model.summary()
-    # quit()
+    quit()
     #x = tf.experimental.numpy.random.randn(8, 64, 64, 3)
     bs = [1]
     res = []

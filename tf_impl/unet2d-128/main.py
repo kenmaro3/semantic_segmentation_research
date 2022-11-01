@@ -3,6 +3,7 @@ import cv2 as cv
 import glob
 # from unet_network import UNet3D
 from unet2d_mobile_ultra_thin import UNet2D
+#from unet2d_mobile_5m import UNet2D
 import tensorflow as tf
 from dl_train import DataLoader
 from tensorflow.keras.callbacks import ReduceLROnPlateau,ModelCheckpoint,EarlyStopping
@@ -111,12 +112,12 @@ for data, label in zip(paths_data, paths_label):
 
 
 ## Build the object data
-train_gen = DataLoader(paths_data,paths_label,video_obj_data,video_obj_label,train_frames, batch_size=4)
-val_gen = DataLoader(paths_data,paths_label,video_obj_data,video_obj_label,val_frames, batch_size=4)
+train_gen = DataLoader(paths_data,paths_label,video_obj_data,video_obj_label,train_frames, batch_size=4, h_flip=True, v_flip=True, rotation=False, is_gray_scale=True)
+val_gen = DataLoader(paths_data,paths_label,video_obj_data,video_obj_label,val_frames, batch_size=4, is_gray_scale=True)
 
 
 ## Generate the model
-inputs  = tf.keras.layers.Input(shape=(128,128, 3))
+inputs  = tf.keras.layers.Input(shape=(128,128, 1))
 model   = UNet2D(n_channels=3,n_classes=1)
 outputs = model(inputs)
 model   = tf.keras.Model(inputs,outputs)
@@ -139,7 +140,7 @@ NADAM = tf.keras.optimizers.Nadam(learning_rate=l_rate,
 
 
 ## Set rule for stopping
-checkpoint = ModelCheckpoint("model_128_1m.h5",
+checkpoint = ModelCheckpoint("model_128_1m_aug_gray.h5",
                              verbose=1,
                              save_freq='epoch',
                              save_best_only=True,

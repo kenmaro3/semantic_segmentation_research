@@ -1,7 +1,9 @@
 import cv2 as cv
 import numpy as np
 import tensorflow as tf
-from unet2d import UNet2D
+#from unet2d import UNet2D
+#from unet2d_mobile_5m import UNet2D
+from unet2d_mobile_ultra_thin import UNet2D
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -11,10 +13,10 @@ if __name__ == "__main__":
     outputs = model(inputs)
     model  = tf.keras.Model(inputs, outputs)
 
-    model.load_weights(f"model_128.h5")
+    model.load_weights(f"model_128_1m.h5")
 
     input_model = "saved_model"
-    output_model = "model_128_dr_1.tflite"
+    output_model = "model_128_1m.tflite"
 
     print("\n\nhere0000!!!=================")
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
